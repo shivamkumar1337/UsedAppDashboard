@@ -1,14 +1,16 @@
 # extract runtime data from the task manager of apps, create graphs and forward the data to frontend.
 
-import numpy as np
-import pandas as pd
+# import numpy as np
+# import pandas as pd
 from flask import Flask, jsonify
+from flask_cors import CORS
 import psutil
 from datetime import datetime
 import time
 import os
 
 app = Flask(__name__)
+CORS(app)
 def get_process_info():
     process_list = []
     for process in psutil.process_iter(attrs=['pid', 'name', 'cpu_percent', 'memory_info', 'create_time']):
@@ -40,7 +42,7 @@ def processes():
     return jsonify(process_list)
 
 if __name__ == "__main__":
-     app.run(debug=True)
+     app.run(debug=True, port=5000)
      """     while True:
         process_list = get_process_info()
         print_process_info(process_list)
