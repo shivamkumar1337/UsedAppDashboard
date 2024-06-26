@@ -3,7 +3,7 @@ import React from 'react';
 const Table = ({ data }) => {
   return (
     <div>
-      <button onClick={() => console.log(data)}>Console</button>
+      {/* <button onClick={() => console.log(data)}>Console</button> */}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>

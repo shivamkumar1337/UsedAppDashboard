@@ -2,40 +2,38 @@ import Graph from "./Graph";
 import Table from "./Table";
 import React, { useEffect, useState } from "react";
 
-const tempData = {
-  system_apps: [
+const tempData = [
     {
-      app_name: "Calculator",
-      opening_time: "2024-06-25T08:30:00Z",
-      closing_time: "2024-06-25T08:45:00Z",
-      duration: "00:15:00",
+      name: "Calculator",
+      create_time: "2024-06-25T08:30:00Z",
+      end_time: "2024-06-25T08:45:00Z",
+      runtime: "00:15:00",
     },
     {
-      app_name: "Calendar",
-      opening_time: "2024-06-25T09:00:00Z",
-      closing_time: "2024-06-25T09:30:00Z",
-      duration: "00:30:00",
+      name: "Calendar",
+      create_time: "2024-06-25T09:00:00Z",
+      end_time: "2024-06-25T09:30:00Z",
+      runtime: "00:30:00",
     },
     {
-      app_name: "Settings",
-      opening_time: "2024-06-25T10:00:00Z",
-      closing_time: "2024-06-25T10:05:00Z",
-      duration: "00:05:00",
+      name: "Settings",
+      create_time: "2024-06-25T10:00:00Z",
+      end_time: "2024-06-25T10:05:00Z",
+      runtime: "00:05:00",
     },
     {
-      app_name: "File Manager",
-      opening_time: "2024-06-25T11:15:00Z",
-      closing_time: "2024-06-25T11:45:00Z",
-      duration: "00:30:00",
+      name: "File Manager",
+      create_time: "2024-06-25T11:15:00Z",
+      end_time: "2024-06-25T11:45:00Z",
+      runtime: "00:30:00",
     },
     {
-      app_name: "Notes",
-      opening_time: "2024-06-25T12:00:00Z",
-      closing_time: "2024-06-25T12:10:00Z",
-      duration: "00:10:00",
-    },
-  ],
-};
+      name: "Notes",
+      create_time: "2024-06-25T12:00:00Z",
+      end_time: "2024-06-25T12:10:00Z",
+      runtime: "00:10:00",
+    }
+  ];
 
 const Body = () => {
   const [processes, setProcesses] = useState([]);
@@ -99,7 +97,7 @@ const Body = () => {
         }}
       >
         <h3>Table</h3>
-        <Table data={tempData} />
+        <Table data={processes} />
       </div>
       <div
         style={{
@@ -110,7 +108,7 @@ const Body = () => {
         }}
       >
         <h3>Graph</h3>
-        <Graph data={tempData} />
+        <Graph data={processes} />
       </div>
     </div>
   );
