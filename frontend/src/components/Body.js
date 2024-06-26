@@ -1,7 +1,8 @@
 import Graph from "./Graph";
 import Table from "./Table";
 import React, { useEffect, useState } from "react";
-
+import DatePicker from "react-datepicker"
+import 'react-datepicker/dist/react-datepicker.css';
 const tempData = {
   system_apps: [
     {
@@ -39,7 +40,15 @@ const tempData = {
 
 const Body = () => {
   const [processes, setProcesses] = useState([]);
+  const [fromDate, setFromDate] = useState(new Date());
+  const [toDate, setToDate] = useState(new Date());
 
+  const handlefromDateChange = (date) => {
+    setFromDate(date);
+  }
+  const handleToDateChange = (date) => {
+    setToDate(date);
+  }
   const fetchProcesses = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/processes");
@@ -65,34 +74,65 @@ const Body = () => {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "center",
           width: "100%",
+          alignItems:"center"
+          
         }}
       >
-        <text
+        <h3
           style={{
             padding: 10,
             fontSize: 20,
+            position:"absolute",
+            left:0
           }}
         >
           Welcome Shivam San !
-        </text>
+        </h3>
+        <div style={{display:"flex",flexDirection:"row", justifyContent:"space-between", width:"40%"}}>
+          <div>
+
+        <h3>From</h3>
+        <DatePicker
+        style={{padding:10}}
+        
+        selected={fromDate}
+        onChange={handlefromDateChange}
+        dateFormat="yyyy/MM/dd"
+        />
+        </div>
+        <div>
+
+        <h3>To</h3>
+        <DatePicker
+        style={{padding:10}}
+        selected={toDate}
+        onChange={handleToDateChange}
+        dateFormat="yyyy/MM/dd"
+        />
+        </div>
+        </div>
         <button
           style={{
             padding: 5,
             borderRadius: 8,
             backgroundColor: "#525CEB",
             color: "white",
+            position:"absolute",
+            right:0,
+            margin:10
           }}
           onClick={fetchProcesses}
         >
-          Refresh
+          Get Data
         </button>
+
       </div>
       <div
         style={{
           width: "100%",
-        //   backgroundColor: "#BFCFE7",
+          //   backgroundColor: "#BFCFE7",
           margin: 5,
           borderRadius: 8,
           padding: 5,
@@ -104,7 +144,7 @@ const Body = () => {
       <div
         style={{
           width: "100%",
-        //   backgroundColor: "#BFCFE7",
+          //   backgroundColor: "#BFCFE7",
           margin: 5,
           borderRadius: 8,
         }}
