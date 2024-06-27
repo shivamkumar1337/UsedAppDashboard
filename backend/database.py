@@ -17,7 +17,6 @@ def connect_to_DB():
             host=DB_HOST,
             port=DB_PORT
         )
-        print(f"{conn}")
         return conn
     except Exception as e:
         print(f"Error connecting to the database: {e}")
@@ -34,7 +33,7 @@ def insert_app_usage(data):
                 """)
             print(f"Inserting data: {data}")
             cursor.execute(insert_query, (
-                data['id'],
+                data['pid'],
                 data['app_name'],
                 data['start_time'],
                 data['end_time'],
@@ -42,11 +41,11 @@ def insert_app_usage(data):
             ))
             conn.commit()
             cursor.close()
+            print("Data insertion successful")
         except Exception as e:
             print(f"Error inserting data: {e}")
         finally:
             conn.close()
-            print("Data insertion successful")
     else:
         print("No connection to database")
 
