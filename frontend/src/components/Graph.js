@@ -7,9 +7,9 @@ ChartJS.register(
   );
   
 const Graph = ({ data }) => {
-    const labels = data.system_apps.map(app => app.app_name);
-    const durations = data.system_apps.map(app => {
-      const [hours, minutes, seconds] = app.duration.split(':').map(Number);
+    const labels = data.map(app => app.name);
+    const durations = data.map(app => {
+      const [hours, minutes, seconds] = app.runtime.split(':').map(Number);
       return hours * 60 + minutes + seconds / 60; // Convert duration to minutes
     });
   
