@@ -23,19 +23,17 @@ def get_process_info():
             process_info['create_time'] = create_time.strftime("%Y-%m-%d %H:%M:%S")
             process_info['runtime'] = str(datetime.now() - create_time).split('.')[0]
             process_info['memory_info'] = process_info['memory_info'].rss / (1024 * 1024)
-            if process_info['cpu_percent'] > 0:
-                process_info['end_time'] = "Currently running"
-            else:
-                process_info['end_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            process_info['end_time'] = "Currently running" if process_info['cpu_percent'] > 0 else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             process_list.append(process_info)
 
-            insert_app_usage({
+            data = {
                 'pid': process_info['pid'],
                 'app_name': process_info['name'],
                 'start_time': process_info['create_time'],
                 'end_time': process_info['end_time'],
                 'runtime': process_info['runtime']
-            })
+            }
+            insert_app_usage(data)
 
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass
@@ -61,6 +59,7 @@ def device_info():
     return jsonify(info)
 
 if __name__ == "__main__":
+     get_process_info()
      app.run(debug=True, port=5000)
     #  get_process_info()
      # while True:
