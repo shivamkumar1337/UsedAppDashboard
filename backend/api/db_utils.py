@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2 import sql
-from datetime import datetime
 from psycopg2.extras import RealDictCursor
+from datetime import datetime
 
 DB_NAME = "AppUsageDatabase"
 DB_USER = "postgres"
@@ -9,7 +9,7 @@ DB_PASSWORD = "12345"
 DB_HOST = "localhost"
 DB_PORT = "5433"
 
-def connect_to_DB():
+def connect_to_db():
     try:
         conn = psycopg2.connect(
             dbname=DB_NAME,
@@ -23,9 +23,8 @@ def connect_to_DB():
         print(f"Error connecting to the database: {e}")
         return None
 
-def insert_app_usage(data):
-    print("trying to connect")
-    conn = connect_to_DB()
+def fetch_data():
+    conn = connect_to_db()
     if conn:
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -41,12 +40,13 @@ def insert_app_usage(data):
     else:
         return None
 
+
 def fetch_app_usage():
     conn = connect_to_DB()
     if conn:
         try:
             cursor = conn.cursor()
-            select_query = sql.SQL("SELECT * FROM table1")
+            select_query = sql.SQL("SELECT * FROM appusage")
             cursor.execute(select_query)
             records = cursor.fetchall()
             cursor.close()
