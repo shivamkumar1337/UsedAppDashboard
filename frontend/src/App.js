@@ -1,12 +1,17 @@
+import { useState } from "react";
 import Body from "./components/Body";
 import Header from "./components/Header";
+import SubHeading from "./components/SubHeading";
 
 
 function App() {
+  const [processes, setProcesses] = useState([]);
+
   return (
     <div className="App">
       <Header/>
-      <Body/>
+      <SubHeading setProcesses={setProcesses}/>
+      <Body processes={processes}/>
     </div>
   );
 }
