@@ -2,9 +2,9 @@ import psycopg2
 from psycopg2 import sql
 from datetime import datetime
 
-DB_NAME = "Sekisho"
+DB_NAME = "AppUsageDatabase"
 DB_USER = "postgres"
-DB_PASSWORD = "user%99"
+DB_PASSWORD = "12345"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
@@ -17,13 +17,14 @@ def connect_to_DB():
             host=DB_HOST,
             port=DB_PORT
         )
-        print(f"{conn}")
+        print(conn+"CONNECTED,,,,,")
         return conn
     except Exception as e:
         print(f"Error connecting to the database: {e}")
         return None
 
 def insert_app_usage(data):
+    print("trying to connect")
     conn = connect_to_DB()
     if conn:
         try:

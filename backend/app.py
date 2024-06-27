@@ -8,7 +8,7 @@ from flask_cors import CORS
 import psutil
 from datetime import datetime
 import os
-from backend.device import get_device_info
+from device import get_device_info
 from database import insert_app_usage
 
 app = Flask(__name__)
@@ -50,7 +50,7 @@ def print_process_info(process_list):
     for process in process_list:
         print(f"{process['pid']:<10} {process['name']:<25} {process['cpu_percent']:<10} {process['memory_info']:<15.2f} {process['start_date']:<20} {process['create_time']:<20} {process['end_date']:<20} {process['end_time']:<20} {process['runtime']:<10}")
 
-@app.route('/api/processes', methods=['GET'])
+@app.route('/api/processes', methods=['PUT'])
 def processes():
     process_list = get_process_info()
     return jsonify(process_list)
@@ -62,7 +62,7 @@ def device_info():
 
 if __name__ == "__main__":
      app.run(debug=True, port=5000)
-
+    #  get_process_info()
      # while True:
      #   process_list = get_process_info()
      #   print_process_info(process_list)
