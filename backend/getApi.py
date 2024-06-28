@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2 import sql
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_cors import CORS
 
 # PostgreSQL connection parameters
@@ -25,13 +25,10 @@ def get_db_connection():
     return conn
 
 # Function to calculate duration in HH:MM:SS format
-def calculate_duration(duration):
-    # if start_time and end_time:
-    # duration = end_time - start_time
-    hours, remainder = divmod(duration.total_seconds(), 3600)
+def calculate_duration(duration_seconds):
+    hours, remainder = divmod(duration_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
-    # return None
 
 # Example endpoint to get session data
 @app.route('/sessions', methods=['GET'])
@@ -77,8 +74,6 @@ def get_aggregated_sessions():
                 a.name AS app_name,
                 MIN(s.start_time) AS first_start_time,
                 MAX(s.end_time) AS final_end_time,
-                MIN(s.start_time) AS first_start_time,
-                MAX(s.end_time) AS final_end_time,
                 SUM(EXTRACT(EPOCH FROM s.duration)) AS duration_seconds
             FROM
                 applications a
@@ -92,20 +87,39 @@ def get_aggregated_sessions():
         cursor.execute(query)
         aggregated_sessions = cursor.fetchall()
 
-        # Convert format for duration
+        # Convert to list of dictionaries and format duration
+        session_list = []
         for session in aggregated_sessions:
-            session['duration_seconds'] = calculate_duration(session['duration_seconds'])
-            # Remove duration_seconds key if not needed
-            del session['duration_seconds']
+            session_dict = {
+                'app_name': session[0],
+                'first_start_time': session[1].isoformat(),
+                'final_end_time': session[2].isoformat(),
+                'duration': calculate_duration(session[3])
+            }
+            session_list.append(session_dict)
 
         conn.close()
-        print(aggregated_sessions)
-        return jsonify(aggregated_sessions), 200
+        return jsonify(session_list), 200
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/full_join_data', methods=['GET'])
-def get_full_join_data
+def get_ful_join_data():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT
+	            s.*,
+                a.name AS app_name
+            FROM
+                applications a
+            FULL JOIN
+                sessions s ON a.id = s.app_id
+            ORDER BY
+                a.id
+                
+                """
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
