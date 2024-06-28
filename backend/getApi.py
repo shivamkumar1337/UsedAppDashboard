@@ -11,9 +11,6 @@ DB_PASSWORD = "user%99"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
-# Define Japan timezone
-japan_tz = pytz.timezone('Asia/Tokyo')
-
 app = Flask(__name__)
 
 def get_db_connection():
@@ -26,18 +23,13 @@ def get_db_connection():
     )
     return conn
 
-# Function to convert datetime to Japan timezone
-def convert_to_japan_timezone(dt):
-    if dt:
-        return dt.astimezone(japan_tz)
-    return None
-
 # Function to calculate duration in minutes (rounded to 2 decimal places)
-def calculate_duration_minutes(start_time, end_time):
+def calculate_duration(start_time, end_time):
     if start_time and end_time:
         duration = end_time - start_time
-        duration_minutes = duration.total_seconds() / 60
-        return round(duration_minutes, 2)
+        hours, remainder = divmod(duration.total_seconds(), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
     return None
 
 # Example endpoint to get session data
@@ -99,14 +91,12 @@ def get_aggregated_sessions():
 
         # Convert datetime fields to Japan timezone and calculate duration in minutes (rounded to 2 decimal places)
         for session in aggregated_sessions:
-            session['first_start_time_japan'] = convert_to_japan_timezone(session['first_start_time_japan'])
-            session['final_end_time_japan'] = convert_to_japan_timezone(session['final_end_time_japan'])
-            session['duration_minutes'] = calculate_duration_minutes(session['first_start_time_japan'], session['final_end_time_japan'])
-
+            session['duration_minutes'] = calculate_duration(session['first_start_time_japan'], session['final_end_time_japan'])
             # Remove duration_seconds key if not needed
             del session['duration_seconds']
 
         conn.close()
+        print(aggregated_sessions)
         return jsonify(aggregated_sessions), 200
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500

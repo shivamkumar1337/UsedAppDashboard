@@ -29,7 +29,7 @@ def log_session(conn, app_id, start_time, end_time):
     cursor = conn.cursor()
     insert_query = sql.SQL("""
         INSERT INTO sessions (app_id, start_time, end_time, duration)
-        VALUES (%s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s) 
     """)
     cursor.execute(insert_query, (app_id, start_time, end_time, duration))
     conn.commit()

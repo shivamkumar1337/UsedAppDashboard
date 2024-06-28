@@ -1,85 +1,124 @@
-# extract runtime data from the task manager of apps, create graphs and forward the data to frontend.
-
-# import numpy as np
-# import pandas as pd
-
-from flask import Flask, jsonify
-from flask_cors import CORS
-import psutil
-from datetime import datetime
-import threading
 import time
-import pygetwindow as gw
-import win32gui
+import psycopg2
+from psycopg2 import sql
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pynput import mouse
+from datetime import datetime
+import pandas as pd
 
-import os
+# PostgreSQL connection parameters
+DB_NAME = "Sekisho"
+DB_USER = "postgres"
+DB_PASSWORD = "user%99"
+DB_HOST = "localhost"
+DB_PORT = "5432"
 
-from device import get_device_info
-from database import insert_app_usage, fetch_app_usage
+# Function to establish PostgreSQL connection
+def get_db_connection():
+    conn = psycopg2.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+    return conn
 
-app = Flask(__name__)
-CORS(app)
+# Function to create cursor data table in PostgreSQL
+def create_cursor_data_table(conn):
+    cursor = conn.cursor()
+    create_table_query = """
+        CREATE TABLE IF NOT EXISTS cursor_data (
+            id SERIAL PRIMARY KEY,
+            x INT NOT NULL,
+            y INT NOT NULL,
+            clicked BOOLEAN DEFAULT FALSE,
+            capture_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """
+    cursor.execute(create_table_query)
+    conn.commit()
+    cursor.close()
 
-window_start_time = {}
-window_runtime = {}
+# Function to insert cursor data into PostgreSQL
+def insert_cursor_data(conn, x, y, clicked):
+    cursor = conn.cursor()
+    insert_query = sql.SQL("""
+        INSERT INTO cursor_data (x, y, clicked, capture_time)
+        VALUES (%s, %s, %s, %s)
+    """)
+    cursor.execute(insert_query, (x, y, clicked, datetime.now()))
+    conn.commit()
+    cursor.close()
 
+# Function to capture cursor movements and clicks
+def on_move(x, y):
+    insert_cursor_data(conn, x, y, False)
+    print(f'Mouse moved to ({x}, {y})')
 
+def on_click(x, y, button, pressed):
+    if pressed:
+        insert_cursor_data(conn, x, y, True)
+        print(f'Mouse clicked at ({x}, {y})')
 
-def get_process_info():
-    process_list = []
-    for process in psutil.process_iter(attrs=['pid', 'name', 'cpu_percent', 'memory_info', 'create_time', 'exe']):
-        try:
-            process_info = process.info
-            if process_info['exe'] and not process_info['exe'].startswith(('/usr', '/System', '/Library', 'C\\Windows', 'C:\\Program Files (x86)', 'C:\\Program Files')):
-                create_time = datetime.fromtimestamp(process_info['create_time'])
-                process_info['create_time'] = create_time.strftime("%Y-%m-%d %H:%M:%S")
-                process_info['runtime'] = str(datetime.now() - create_time).split('.')[0]
-                process_info['memory_info'] = process_info['memory_info'].rss / (1024 * 1024)
-                process_info['end_time'] = "Currently running" if process_info[
-                                                                      'cpu_percent'] > 0 else datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S")
-                process_list.append(process_info)
+# Main function to collect cursor data and create heatmap
+def collect_data_and_create_heatmap():
+    global conn
+    try:
+        # Establish PostgreSQL connection
+        conn = get_db_connection()
+        print("Connected to PostgreSQL!")
 
-                data = {
-                    'pid': process_info['pid'],
-                    'app_name': process_info['name'],
-                    'start_time': process_info['create_time'],
-                    'end_time': process_info['end_time'],
-                    'runtime': process_info['runtime']
-                }
-                insert_app_usage(data)
+        # Create cursor data table if not exists
+        create_cursor_data_table(conn)
+        print("Cursor data table created/verified.")
 
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    process_list = sorted(process_list, key=lambda p: p['cpu_percent'], reverse=True)
-    return process_list
+        # Start listening to mouse events
+        with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
+            print("Listening to mouse events...")
+            listener.join()
 
-def continuous_process_update(interval=60):
-    while True:
-        get_process_info()
-        time.sleep(interval)
+    except psycopg2.Error as e:
+        print(f"Error connecting to PostgreSQL: {e}")
 
-@app.route('/api/processes', methods=['GET'])
-def processes():
-    process_list = get_process_info()
-    return jsonify(process_list)
+    finally:
+        if 'conn' in globals() and conn is not None:
+            conn.close()
+            print("PostgreSQL connection closed.")
 
-@app.route('/api/device_info', methods=['GET'])
-def device_info():
-    info = get_device_info()
-    return jsonify(info)
+        # Create heatmap using collected data
+        create_heatmap()
 
-@app.route('/api/app_usage', methods=['GET'])
-def app_usage():
-    records = fetch_app_usage()
-    return jsonify(records)
+# Function to create heatmap using collected cursor data
+def create_heatmap():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT x, y FROM cursor_data")
+        cursor_data = cursor.fetchall()
+        conn.close()
 
-if __name__ == "__main__":
+        # Convert cursor data to DataFrame for seaborn heatmap
+        cursor_df = pd.DataFrame(cursor_data, columns=['x', 'y'])
 
-    update_thread = threading.Thread(target=continuous_process_update, daemon=True)
-    update_thread.start()
+        # Set up the heatmap plot
+        plt.figure(figsize=(10, 8))
+        sns.set(style="whitegrid")
+        plt.title('Cursor Heatmap')
 
-    app.run(debug=True, port=5000)
+        # Plot heatmap
+        sns.kdeplot(x=cursor_df['x'], y=cursor_df['y'], cmap="Reds", cbar=True, shade=True, shade_lowest=False, alpha=0.8)
 
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
 
+        plt.tight_layout()
+        plt.show()
 
+    except psycopg2.Error as e:
+        print(f"Error connecting to PostgreSQL: {e}")
+
+if __name__ == '__main__':
+    collect_data_and_create_heatmap()
+    create_heatmap()
