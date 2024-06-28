@@ -24,7 +24,7 @@ def get_db_connection():
     )
     return conn
 
-# Function to calculate duration in minutes (rounded to 2 decimal places)
+# Function to calculate duration in HH:MM:SS format
 def calculate_duration(start_time, end_time):
     if start_time and end_time:
         duration = end_time - start_time
@@ -94,7 +94,7 @@ def get_aggregated_sessions():
 
         # Convert format for duration
         for session in aggregated_sessions:
-            session['duration'] = calculate_duration(session['first_start_time'], session['final_end_time'])
+            session['duration_seconds'] = calculate_duration(session['first_start_time'], session['final_end_time'])
             # Remove duration_seconds key if not needed
             del session['duration_seconds']
 
