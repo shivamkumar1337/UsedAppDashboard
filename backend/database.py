@@ -30,6 +30,11 @@ def insert_app_usage(data):
             insert_query = sql.SQL("""
                 INSERT INTO appusage (pid, app_name, start_time, end_time, runtime)
                 VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (pid, app_name)
+                DO UPDATE SET
+                    start_time = EXCLUDED.start_time,
+                    end_time = EXCLUDED.end_time,
+                    runtime = EXCLUDED.runtime
                 """)
             print(f"Inserting data: {data}")
             cursor.execute(insert_query, (
@@ -49,3 +54,22 @@ def insert_app_usage(data):
     else:
         print("No connection to database")
 
+def fetch_app_usage():
+    conn = connect_to_DB()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            select_query = sql.SQL("SELECT * FROM appusage")
+            cursor.execute(select_query)
+            records = cursor.fetchall()
+            cursor.close()
+            print("Data fetched successful")
+            return records
+        except Exception as e:
+            print(f"Error fetching data: {e}")
+            return []
+        finally:
+            conn.close()
+    else:
+        print("No connection to database")
+        return []
