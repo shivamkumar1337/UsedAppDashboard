@@ -27,7 +27,7 @@ def get_db_connection():
 # Function to calculate duration in HH:MM:SS format
 def calculate_duration(duration):
     # if start_time and end_time:
-        # duration = end_time - start_time
+    # duration = end_time - start_time
     hours, remainder = divmod(duration.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
     return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
@@ -103,6 +103,9 @@ def get_aggregated_sessions():
         return jsonify(aggregated_sessions), 200
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/full_join_data', methods=['GET'])
+def get_full_join_data
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
