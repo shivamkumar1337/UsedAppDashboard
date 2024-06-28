@@ -2,15 +2,17 @@ from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2 import sql
 from datetime import datetime
+from flask_cors import CORS
 
 # PostgreSQL connection parameters
-DB_NAME = "Sekisho"
+DB_NAME = "AppUsageDatabase"
 DB_USER = "postgres"
-DB_PASSWORD = "user%99"
+DB_PASSWORD = "12345"
 DB_HOST = "localhost"
-DB_PORT = "5432"
+DB_PORT = "5433"
 
 app = Flask(__name__)
+CORS(app)
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -79,6 +81,7 @@ def get_aggregated_sessions():
         cursor.execute(query)
         aggregated_sessions = cursor.fetchall()
         conn.close()
+        # print(aggregated_sessions)
         return jsonify(aggregated_sessions), 200
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
