@@ -24,13 +24,13 @@ def get_db_connection():
     return conn
 
 # Function to calculate duration in HH:MM:SS format
-def calculate_duration(start_time, end_time):
-    if start_time and end_time:
-        duration = end_time - start_time
-        hours, remainder = divmod(duration.total_seconds(), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
-    return None
+def calculate_duration(duration):
+    # if start_time and end_time:
+        # duration = end_time - start_time
+    hours, remainder = divmod(duration.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return "{:02}:{:02}:{:02}".format(int(hours), int(minutes), int(seconds))
+    # return None
 
 # Example endpoint to get session data
 @app.route('/sessions', methods=['GET'])
@@ -91,7 +91,7 @@ def get_aggregated_sessions():
 
         # Convert format for duration
         for session in aggregated_sessions:
-            session['duration_seconds'] = calculate_duration(session['first_start_time'], session['final_end_time'])
+            session['duration_seconds'] = calculate_duration(session['duration_seconds'])
             # Remove duration_seconds key if not needed
             del session['duration_seconds']
 
