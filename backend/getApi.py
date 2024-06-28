@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2 import sql
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz  # Import pytz for timezone conversion
 
 # PostgreSQL connection parameters
 DB_NAME = "Sekisho"
@@ -9,6 +10,9 @@ DB_USER = "postgres"
 DB_PASSWORD = "user%99"
 DB_HOST = "localhost"
 DB_PORT = "5432"
+
+# Define Japan timezone
+japan_tz = pytz.timezone('Asia/Tokyo')
 
 app = Flask(__name__)
 
@@ -21,6 +25,20 @@ def get_db_connection():
         port=DB_PORT
     )
     return conn
+
+# Function to convert datetime to Japan timezone
+def convert_to_japan_timezone(dt):
+    if dt:
+        return dt.astimezone(japan_tz)
+    return None
+
+# Function to calculate duration in minutes (rounded to 2 decimal places)
+def calculate_duration_minutes(start_time, end_time):
+    if start_time and end_time:
+        duration = end_time - start_time
+        duration_minutes = duration.total_seconds() / 60
+        return round(duration_minutes, 2)
+    return None
 
 # Example endpoint to get session data
 @app.route('/sessions', methods=['GET'])
@@ -55,7 +73,7 @@ def create_application():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
-# Endpoint to fetch aggregated session data
+# Endpoint to fetch aggregated session data in Japan timezone with duration in minutes (rounded to 2 decimal places)
 @app.route('/aggregated_sessions', methods=['GET'])
 def get_aggregated_sessions():
     try:
@@ -64,8 +82,8 @@ def get_aggregated_sessions():
         query = """
             SELECT
                 a.name AS app_name,
-                MIN(s.start_time) AS first_start_time,
-                MAX(s.end_time) AS final_end_time,
+                MIN(s.start_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo') AS first_start_time_japan,
+                MAX(s.end_time AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo') AS final_end_time_japan,
                 SUM(EXTRACT(EPOCH FROM s.duration)) AS duration_seconds
             FROM
                 applications a
@@ -78,6 +96,16 @@ def get_aggregated_sessions():
         """
         cursor.execute(query)
         aggregated_sessions = cursor.fetchall()
+
+        # Convert datetime fields to Japan timezone and calculate duration in minutes (rounded to 2 decimal places)
+        for session in aggregated_sessions:
+            session['first_start_time_japan'] = convert_to_japan_timezone(session['first_start_time_japan'])
+            session['final_end_time_japan'] = convert_to_japan_timezone(session['final_end_time_japan'])
+            session['duration_minutes'] = calculate_duration_minutes(session['first_start_time_japan'], session['final_end_time_japan'])
+
+            # Remove duration_seconds key if not needed
+            del session['duration_seconds']
+
         conn.close()
         return jsonify(aggregated_sessions), 200
     except psycopg2.Error as e:
