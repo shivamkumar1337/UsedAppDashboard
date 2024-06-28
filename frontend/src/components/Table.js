@@ -3,14 +3,14 @@ import React from "react";
 const Table = ({ data }) => {
   return (
     <div>
-      <button onClick={() => console.log(data)}>console</button>
+      {/* <button onClick={() => console.log(data)}>console</button> */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th style={{ border: "1px solid", padding: 8 }}>App Name</th>
             <th style={{ border: "1px solid", padding: 8 }}>Opening Time</th>
             <th style={{ border: "1px solid", padding: 8 }}>Closing Time</th>
-            <th style={{ border: "1px solid", padding: 8 }}>Duration(minutes)</th>
+            <th style={{ border: "1px solid", padding: 8 }}>Duration</th>
           </tr>
         </thead>
         <tbody>
@@ -18,7 +18,7 @@ const Table = ({ data }) => {
             data.processes.map((app, index) => (
               <tr key={index}>
                 <td style={{ border: "1px solid", padding: 6 }}>
-                  {app[0]}
+                  {app.app_name}
                 </td>
                 <td style={{ border: "1px solid", padding: 6 }}>
                   {app.first_start_time_japan}
@@ -27,7 +27,7 @@ const Table = ({ data }) => {
                   {app.final_end_time_japan}
                 </td>
                 <td style={{ border: "1px solid", padding: 6 }}>
-                  {app[3]}
+                  {app.duration}
                 </td>
               </tr>
             ))

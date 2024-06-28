@@ -26,8 +26,8 @@ const SubHeading = ({ setProcesses,processes }) => {
       const convertedData = data.map((item) => {
         return {
           ...item,
-          first_start_time_japan: new Date(item[1]).toLocaleString(),
-          final_end_time_japan: new Date(item[2]).toLocaleString(),
+          first_start_time_japan: new Date(item.first_start_time).toLocaleString(),
+          final_end_time_japan: new Date(item.final_end_time).toLocaleString(),
         };
       });
       setProcesses(convertedData);
