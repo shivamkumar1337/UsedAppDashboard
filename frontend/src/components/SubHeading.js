@@ -5,10 +5,11 @@ import DatePicker from "react-datepicker";
 import { format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
-const SubHeading = () => {
+const SubHeading = ({ setProcesses,processes }) => {
   const [fromDateTime, setFromDateTime] = useState(new Date());
   const [toDateTime, setToDateTime] = useState(new Date());
 
+  useEffect(()=>{fetchProcesses()},[])
   const handlefromDateChange = (date) => {
     const newDate = new Date(date.target.value);
     setFromDateTime(newDate);
@@ -18,12 +19,18 @@ const SubHeading = () => {
     setToDateTime(newDate);
   };
 
-  const fetchProcesses = async (setProcesses) => {
+  const fetchProcesses = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/processes");
+      const response = await fetch("http://localhost:5000/aggregated_sessions");
       const data = await response.json();
-      console.log(data);
-      setProcesses(data);
+      const convertedData = data.map((item) => {
+        return {
+          ...item,
+          first_start_time_japan: new Date(item[1]).toLocaleString(),
+          final_end_time_japan: new Date(item[2]).toLocaleString(),
+        };
+      });
+      setProcesses(convertedData);
     } catch (error) {
       console.log(error);
     }

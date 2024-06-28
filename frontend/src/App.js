@@ -10,7 +10,7 @@ function App() {
   return (
     <div className="App">
       <Header/>
-      <SubHeading setProcesses={setProcesses}/>
+      <SubHeading setProcesses={setProcesses} processes={processes}/>
       <Body processes={processes}/>
     </div>
   );

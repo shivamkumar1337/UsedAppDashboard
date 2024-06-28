@@ -7,11 +7,8 @@ ChartJS.register(
   );
   
 const Graph = ({ data }) => {
-    const labels = data.map(app => app.name);
-    const durations = data.map(app => {
-      const [hours, minutes, seconds] = app.runtime.split(':').map(Number);
-      return hours * 60 + minutes + seconds / 60; // Convert duration to minutes
-    });
+    const labels = data.processes.map(app => app.app_name);
+    const durations = data.processes.map(app => app.duration_minutes);
   
     const chartData = {
       labels: labels,
