@@ -66,7 +66,7 @@ def create_application():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
-# Endpoint to fetch aggregated session data
+# Endpoint to fetch aggregated session data with duration in HH:MM:SS
 @app.route('/aggregated_sessions', methods=['GET'])
 def get_aggregated_sessions():
     try:
@@ -75,6 +75,8 @@ def get_aggregated_sessions():
         query = """
             SELECT
                 a.name AS app_name,
+                MIN(s.start_time) AS first_start_time,
+                MAX(s.end_time) AS final_end_time,
                 MIN(s.start_time) AS first_start_time,
                 MAX(s.end_time) AS final_end_time,
                 SUM(EXTRACT(EPOCH FROM s.duration)) AS duration_seconds
@@ -90,9 +92,9 @@ def get_aggregated_sessions():
         cursor.execute(query)
         aggregated_sessions = cursor.fetchall()
 
-        # Convert datetime fields to Japan timezone and calculate duration in minutes (rounded to 2 decimal places)
+        # Convert format for duration
         for session in aggregated_sessions:
-            session['duration_minutes'] = calculate_duration(session['first_start_time_japan'], session['final_end_time_japan'])
+            session['duration'] = calculate_duration(session['first_start_time'], session['final_end_time'])
             # Remove duration_seconds key if not needed
             del session['duration_seconds']
 
