@@ -6,6 +6,7 @@ import seaborn as sns
 from pynput import mouse
 from datetime import datetime
 import pandas as pd
+import socketio
 
 # PostgreSQL connection parameters
 DB_NAME = "Sekisho"
@@ -13,6 +14,8 @@ DB_USER = "postgres"
 DB_PASSWORD = "user%99"
 DB_HOST = "localhost"
 DB_PORT = "5432"
+
+current_app_id = None
 
 # Function to establish PostgreSQL connection
 def get_db_connection():
@@ -55,34 +58,19 @@ def insert_cursor_data(conn, x, y, clicked, app_id):
 
 # Function to capture cursor movements and clicks
 def on_move(x, y):
-    global conn, current_app_id
-    insert_cursor_data(conn, x, y, False, current_app_id)
-    # print(f'Mouse moved to ({x}, {y})')
+    if current_app_id is not None:
+        insert_cursor_data(conn, x, y, False, current_app_id)
+        print(f'Mouse moved to ({x}, {y})')
 
 def on_click(x, y, button, pressed):
-    global conn, current_app_id
-    if pressed:
-        insert_cursor_data(conn, x, y, True, current_app_id)
-        # print(f'Mouse clicked at ({x}, {y})')
-
-# Function to get the current application ID from the database
-def get_current_app_id(app_name):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM applications WHERE name = %s", (app_name,))
-    app_id = cursor.fetchone()
-    if not app_id:
-        cursor.execute("INSERT INTO applications (name) VALUES (%s) RETURNING id", (app_name,))
-        app_id = cursor.fetchone()[0]
-    else:
-        app_id = app_id[0]
-    conn.commit()
-    cursor.close()
-    return app_id
+    if current_app_id is not  None:
+        if pressed:
+            insert_cursor_data(conn, x, y, True, current_app_id)
+            print(f'Mouse clicked at ({x}, {y})')
 
 # Main function to collect cursor data and create heatmap
 def collect_data_and_create_heatmap():
-    global conn, current_app_id
+    global conn
     try:
         # Establish PostgreSQL connection
         conn = get_db_connection()
@@ -91,9 +79,6 @@ def collect_data_and_create_heatmap():
         # Create cursor data table if not exists
         create_cursor_data_table(conn)
         print("Cursor data table created/verified.")
-
-        # Get the current application ID
-        current_app_id = get_current_app_id("CurrentApplicationName") # Replace with your logic to get current app name
 
         # Start listening to mouse events
         with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
@@ -109,41 +94,41 @@ def collect_data_and_create_heatmap():
             print("PostgreSQL connection closed.")
 
         # Create heatmap using collected data
-        create_heatmap(current_app_id)
+        create_heatmap()
 
 # Function to create heatmap using collected cursor data
-def create_heatmap(app_id):
+def create_heatmap():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT x, y FROM cursor_data WHERE app_id = %s", (app_id,))
+        query = ("""
+            SELECT x, y, a.name, s.start_time, s.end_time
+            FROM cursor_data cd
+            JOIN sessions s ON cd.app_id = s.app_id
+            JOIN applications a ON a.id = cd.app_id
+        """)
+        cursor.execute(query)
         cursor_data = cursor.fetchall()
         conn.close()
 
         # Convert cursor data to DataFrame for seaborn heatmap
-        cursor_df = pd.DataFrame(cursor_data, columns=['x', 'y'])
+        cursor_df = pd.DataFrame(cursor_data, columns=['x', 'y', 'app_name', 'start_time', 'end_time'])
 
-        # Set up the heatmap plot
-        plt.figure(figsize=(10, 8))
-        sns.set(style="whitegrid")
-        plt.title('Cursor Heatmap')
+        for app_name in cursor_df['app_name'].unique():
+            app_df = cursor_df[cursor_df['app_name'] == app_name]
 
-        # Plot heatmap
-        sns.kdeplot(x=cursor_df['x'], y=cursor_df['y'], cmap="Reds", cbar=True, shade=True, shade_lowest=False, alpha=0.8)
+            plt.figure(figsize=(8, 8))
+            sns.set(style="whitegrid")
+            plt.title(f"Cursor heatmap for {app_name}")
 
-        plt.xlabel('X Position')
-        plt.ylabel('Y Position')
-
-        plt.tight_layout()
-        plt.show()
+            sns.kdeplot(x=app_df['x'], y=app_df['y'], cmap="Reds", cbar=True, shade=True, shade_lowest=True, alpha=0.8)
+            plt.xlabel('X position')
+            plt.ylabel('Y position')
+            plt.tight_layout()
+            plt.show()
 
     except psycopg2.Error as e:
         print(f"Error connecting to PostgreSQL: {e}")
 
 if __name__ == '__main__':
-    create_heatmap(1)
-    create_heatmap(2)
-    create_heatmap(3)
-    create_heatmap(4)
     collect_data_and_create_heatmap()
-

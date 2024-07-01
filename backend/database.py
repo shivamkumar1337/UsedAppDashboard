@@ -4,6 +4,7 @@ import psycopg2
 from psycopg2 import sql
 from datetime import datetime, timedelta
 from flask_cors import CORS
+import eventlet
 
 # PostgreSQL connection parameters
 DB_NAME = "Sekisho"
@@ -14,7 +15,7 @@ DB_PORT = "5432"
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='eventlet')
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -140,19 +141,6 @@ def get_full_join_data():
 
         conn.close()
         return jsonify(data_list), 200
-    except psycopg2.Error as e:
-        return jsonify({"error": str(e)}), 500
-
-# Endpoint to fetch cursor data by app_id
-@app.route('/cursor_data/<int:app_id>', methods=['GET'])
-def get_cursor_data(app_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT x, y, clicked, capture_time FROM cursor_data WHERE app_id = %s", (app_id,))
-        cursor_data = cursor.fetchall()
-        conn.close()
-        return jsonify(cursor_data), 200
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 

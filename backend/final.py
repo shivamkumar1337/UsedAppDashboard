@@ -4,8 +4,6 @@ from datetime import datetime
 import win32gui
 import win32process
 import socketio
-import requests
-import websocket
 
 # Socket.IO client setup
 sio = socketio.Client()
@@ -61,3 +59,4 @@ if __name__ == "__main__":
             emit_session(current_app, start_time, end_time)
         sio.disconnect()
         print("Session data emitted to Socket.IO server. Exiting.")
+
