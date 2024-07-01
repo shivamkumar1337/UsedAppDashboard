@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 from flask_cors import CORS
 
 # PostgreSQL connection parameters
-DB_NAME = "AppUsageDatabase"
+DB_NAME = "Sekisho"
 DB_USER = "postgres"
-DB_PASSWORD = "12345"
+DB_PASSWORD = "user%99"
 DB_HOST = "localhost"
-DB_PORT = "5433"
+DB_PORT = "5432"
 
 app = Flask(__name__)
 CORS(app)
@@ -118,8 +118,28 @@ def get_ful_join_data():
                 sessions s ON a.id = s.app_id
             ORDER BY
                 a.id
-                
                 """
+        cursor.execute(query)
+        full_join_data = cursor.fetchall()
+
+        data_list = []
+        for row in full_join_data:
+            row_dict = {
+                'session_id': row[0],
+                'app_id': row[1],
+                'start_time': row[2].isoformat() if row[2] else None,
+                'end_time': row[3].isoformat() if row[3] else None,
+                'duration': calculate_duration(row[4].total_seconds()) if row[4] else None,
+                'app_name': row[5]
+            }
+            data_list.append(row_dict)
+
+        conn.close()
+        print(data_list)
+        return jsonify(data_list), 200
+
+    except psycopg2.Error as e:
+        return jsonify({"Error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

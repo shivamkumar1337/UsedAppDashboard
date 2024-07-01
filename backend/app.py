@@ -120,5 +120,6 @@ def create_heatmap():
         print(f"Error connecting to PostgreSQL: {e}")
 
 if __name__ == '__main__':
+
     collect_data_and_create_heatmap()
-    create_heatmap()
+
