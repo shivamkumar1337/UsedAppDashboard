@@ -1,19 +1,22 @@
-import { useState } from "react";
-import Body from "./components/Body";
-import Header from "./components/Header";
-import SubHeading from "./components/SubHeading";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./components/Home";
+import Detail from "./components/Detail";
+// import Home from "./Home";
+// import Detail from "./Detail";
 
-
-function App() {
-  const [processes, setProcesses] = useState([]);
-
+const App = () => {
   return (
-    <div className="App">
-      <Header/>
-      <SubHeading setProcesses={setProcesses} processes={processes}/>
-      <Body processes={processes}/>
+    <div style={{paddingBottom:'40px'}}>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/detail/:app_id" element={<Detail/>} />
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </Router>
     </div>
   );
-}
+};
 
 export default App;

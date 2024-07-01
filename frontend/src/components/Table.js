@@ -1,42 +1,36 @@
 import React from "react";
 
-const Table = ({ data }) => {
+const Table = ({ data, onRowClick }) => {
   return (
     <div>
-      <button onClick={() => console.log(data)}>console</button>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={{ border: "1px solid", padding: 8 }}>App Name</th>
-            <th style={{ border: "1px solid", padding: 8 }}>Opening Time</th>
-            <th style={{ border: "1px solid", padding: 8 }}>Closing Time</th>
-            <th style={{ border: "1px solid", padding: 8 }}>Duration(minutes)</th>
+            <th style={thStyle}>App Name</th>
+            <th style={thStyle}>Opening Time</th>
+            <th style={thStyle}>Closing Time</th>
+            <th style={thStyle}>Duration</th>
           </tr>
         </thead>
         <tbody>
           {data && data.processes.length > 0 ? (
             data.processes.map((app, index) => (
-              <tr key={index}>
-                <td style={{ border: "1px solid", padding: 6 }}>
-                  {app[0]}
-                </td>
-                <td style={{ border: "1px solid", padding: 6 }}>
-                  {app.first_start_time_japan}
-                </td>
-                <td style={{ border: "1px solid", padding: 6 }}>
-                  {app.final_end_time_japan}
-                </td>
-                <td style={{ border: "1px solid", padding: 6 }}>
-                  {app[3]}
-                </td>
+              <tr
+                key={index}
+                style={trStyle}
+                onClick={() => onRowClick(app.app_id)}
+                onMouseOver={handleMouseOver}
+                onMouseOut={handleMouseOut}
+              >
+                <td style={tdStyle}>{app.app_name}</td>
+                <td style={tdStyle}>{app.first_start_time_japan}</td>
+                <td style={tdStyle}>{app.final_end_time_japan}</td>
+                <td style={tdStyle}>{app.duration}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td
-                colSpan="4"
-                style={{ border: "1px solid", padding: 6, textAlign: "center" }}
-              >
+              <td colSpan="4" style={{ ...tdStyle, textAlign: "center" }}>
                 No data available
               </td>
             </tr>
@@ -45,6 +39,39 @@ const Table = ({ data }) => {
       </table>
     </div>
   );
+};
+
+const tableStyle = {
+  width: "100%",
+  borderCollapse: "collapse",
+  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+};
+
+const thStyle = {
+  border: "1px solid #ddd",
+  padding: 12,
+  backgroundColor: "#4A249D",
+  color: "white",
+  textAlign: "left",
+  fontWeight: "bold",
+};
+
+const tdStyle = {
+  border: "1px solid #ddd",
+  padding: 10,
+  color: "#333",
+};
+
+const trStyle = {
+  cursor: "pointer",
+};
+
+const handleMouseOver = (e) => {
+  e.currentTarget.style.backgroundColor = "#f1f1f1";
+};
+
+const handleMouseOut = (e) => {
+  e.currentTarget.style.backgroundColor = "";
 };
 
 export default Table;
