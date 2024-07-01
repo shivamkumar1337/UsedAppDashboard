@@ -71,6 +71,7 @@ def get_aggregated_sessions():
         cursor = conn.cursor()
         query = """
             SELECT
+                a.id AS app_id,
                 a.name AS app_name,
                 MIN(s.start_time) AS first_start_time,
                 MAX(s.end_time) AS final_end_time,
@@ -80,9 +81,9 @@ def get_aggregated_sessions():
             JOIN
                 sessions s ON a.id = s.app_id
             GROUP BY
-                a.name
+                a.id, a.name
             ORDER BY
-                app_name;
+                a.name;
         """
         cursor.execute(query)
         aggregated_sessions = cursor.fetchall()
@@ -91,10 +92,11 @@ def get_aggregated_sessions():
         session_list = []
         for session in aggregated_sessions:
             session_dict = {
-                'app_name': session[0],
-                'first_start_time': session[1].isoformat(),
-                'final_end_time': session[2].isoformat(),
-                'duration': calculate_duration(session[3])
+                'app_id': session[0],
+                'app_name': session[1],
+                'first_start_time': session[2].isoformat(),
+                'final_end_time': session[3].isoformat(),
+                'duration': calculate_duration(session[4])
             }
             session_list.append(session_dict)
 
@@ -103,5 +105,156 @@ def get_aggregated_sessions():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/aggregated_sessions_today', methods=['GET'])
+def get_aggregated_sessions_today():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Calculate today's start and end times
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                MIN(s.start_time) AS first_start_time,
+                MAX(s.end_time) AS final_end_time,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS duration_seconds
+            FROM
+                applications a
+            JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                s.start_time >= %s AND s.start_time < %s
+            GROUP BY
+                a.id, a.name
+            ORDER BY
+                a.name;
+        """
+        cursor.execute(query, (today_start, today_end))
+        aggregated_sessions = cursor.fetchall()
+
+        # Convert to list of dictionaries and format duration
+        session_list = []
+        for session in aggregated_sessions:
+            session_dict = {
+                'app_id': session[0],
+                'app_name': session[1],
+                'first_start_time': session[2].isoformat(),
+                'final_end_time': session[3].isoformat(),
+                'duration': calculate_duration(session[4])
+            }
+            session_list.append(session_dict)
+
+        conn.close()
+        return jsonify(session_list), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/sessions/<int:app_id>', methods=['GET'])
+def get_sessions_by_app_id(app_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS total_duration_seconds,
+                s.start_time,
+                s.end_time
+            FROM
+                applications a
+            FULL JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                a.id = %s
+            GROUP BY
+                a.id, a.name, s.start_time, s.end_time
+            ORDER BY
+                s.start_time;
+        """
+        cursor.execute(query, (app_id,))
+        sessions = cursor.fetchall()
+
+        # Format the response
+        session_list = []
+        total_duration_seconds = 0
+        for session in sessions:
+            if session[2] is not None:
+                total_duration_seconds = session[2]
+            session_list.append({
+                'start_time': session[3].isoformat() if session[3] else None,
+                'end_time': session[4].isoformat() if session[4] else None,
+            })
+
+        app_data = {
+            'app_id': app_id,
+            'app_name': sessions[0][1] if sessions else '',
+            'total_duration': calculate_duration(total_duration_seconds),
+            'sessions': session_list
+        }
+
+        conn.close()
+        return jsonify(app_data), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/aggregated_sessions_custom', methods=['GET'])
+def get_aggregated_sessions_custom():
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        # Validate and parse dates
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use ISO format with milliseconds"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                MIN(s.start_time) AS first_start_time,
+                MAX(s.end_time) AS final_end_time,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS duration_seconds
+            FROM
+                applications a
+            JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                s.start_time >= %s AND s.end_time <= %s
+            GROUP BY
+                a.id, a.name
+            ORDER BY
+                a.name;
+        """
+        cursor.execute(query, (start_date, end_date))
+        aggregated_sessions = cursor.fetchall()
+
+        # Convert to list of dictionaries and format duration
+        session_list = []
+        for session in aggregated_sessions:
+            session_dict = {
+                'app_id': session[0],
+                'app_name': session[1],
+                'first_start_time': session[2].isoformat(),
+                'final_end_time': session[3].isoformat(),
+                'duration': calculate_duration(session[4])
+            }
+            session_list.append(session_dict)
+
+        conn.close()
+        return jsonify(session_list), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+        
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

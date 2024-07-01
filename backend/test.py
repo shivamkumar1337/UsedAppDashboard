@@ -7,11 +7,11 @@ import psycopg2
 from psycopg2 import sql
 
 # PostgreSQL connection parameters
-DB_NAME = "Sekisho"
+DB_NAME = "AppUsageDatabase"
 DB_USER = "postgres"
-DB_PASSWORD = "user%99"
+DB_PASSWORD = "12345"
 DB_HOST = "localhost"
-DB_PORT = "5432"
+DB_PORT = "5433"
 
 # Function to get active window using Win32 API
 def get_active_window():
