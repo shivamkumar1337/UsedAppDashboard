@@ -14,7 +14,7 @@ DB_PORT = "5432"
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
+socketio = SocketIO(app)
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -143,6 +143,19 @@ def get_full_join_data():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
+# Endpoint to fetch cursor data by app_id
+@app.route('/cursor_data/<int:app_id>', methods=['GET'])
+def get_cursor_data(app_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT x, y, clicked, capture_time FROM cursor_data WHERE app_id = %s", (app_id,))
+        cursor_data = cursor.fetchall()
+        conn.close()
+        return jsonify(cursor_data), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
 # Socket.IO event for receiving session data
 @socketio.on('session_data')
 def handle_session_data(data):
@@ -177,4 +190,4 @@ def handle_session_data(data):
         emit('session_logged', {'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)

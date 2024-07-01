@@ -4,6 +4,8 @@ from datetime import datetime
 import win32gui
 import win32process
 import socketio
+import requests
+import websocket
 
 # Socket.IO client setup
 sio = socketio.Client()

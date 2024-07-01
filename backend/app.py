@@ -34,7 +34,8 @@ def create_cursor_data_table(conn):
             x INT NOT NULL,
             y INT NOT NULL,
             clicked BOOLEAN DEFAULT FALSE,
-            capture_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            capture_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            app_id INT REFERENCES applications(id)
         )
     """
     cursor.execute(create_table_query)
@@ -42,29 +43,46 @@ def create_cursor_data_table(conn):
     cursor.close()
 
 # Function to insert cursor data into PostgreSQL
-def insert_cursor_data(conn, x, y, clicked):
+def insert_cursor_data(conn, x, y, clicked, app_id):
     cursor = conn.cursor()
     insert_query = sql.SQL("""
-        INSERT INTO cursor_data (x, y, clicked, capture_time)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO cursor_data (x, y, clicked, capture_time, app_id)
+        VALUES (%s, %s, %s, %s, %s)
     """)
-    cursor.execute(insert_query, (x, y, clicked, datetime.now()))
+    cursor.execute(insert_query, (x, y, clicked, datetime.now(), app_id))
     conn.commit()
     cursor.close()
 
 # Function to capture cursor movements and clicks
 def on_move(x, y):
-    insert_cursor_data(conn, x, y, False)
-    print(f'Mouse moved to ({x}, {y})')
+    global conn, current_app_id
+    insert_cursor_data(conn, x, y, False, current_app_id)
+    # print(f'Mouse moved to ({x}, {y})')
 
 def on_click(x, y, button, pressed):
+    global conn, current_app_id
     if pressed:
-        insert_cursor_data(conn, x, y, True)
-        print(f'Mouse clicked at ({x}, {y})')
+        insert_cursor_data(conn, x, y, True, current_app_id)
+        # print(f'Mouse clicked at ({x}, {y})')
+
+# Function to get the current application ID from the database
+def get_current_app_id(app_name):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM applications WHERE name = %s", (app_name,))
+    app_id = cursor.fetchone()
+    if not app_id:
+        cursor.execute("INSERT INTO applications (name) VALUES (%s) RETURNING id", (app_name,))
+        app_id = cursor.fetchone()[0]
+    else:
+        app_id = app_id[0]
+    conn.commit()
+    cursor.close()
+    return app_id
 
 # Main function to collect cursor data and create heatmap
 def collect_data_and_create_heatmap():
-    global conn
+    global conn, current_app_id
     try:
         # Establish PostgreSQL connection
         conn = get_db_connection()
@@ -73,6 +91,9 @@ def collect_data_and_create_heatmap():
         # Create cursor data table if not exists
         create_cursor_data_table(conn)
         print("Cursor data table created/verified.")
+
+        # Get the current application ID
+        current_app_id = get_current_app_id("CurrentApplicationName") # Replace with your logic to get current app name
 
         # Start listening to mouse events
         with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
@@ -88,14 +109,14 @@ def collect_data_and_create_heatmap():
             print("PostgreSQL connection closed.")
 
         # Create heatmap using collected data
-        create_heatmap()
+        create_heatmap(current_app_id)
 
 # Function to create heatmap using collected cursor data
-def create_heatmap():
+def create_heatmap(app_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT x, y FROM cursor_data")
+        cursor.execute("SELECT x, y FROM cursor_data WHERE app_id = %s", (app_id,))
         cursor_data = cursor.fetchall()
         conn.close()
 
@@ -120,6 +141,9 @@ def create_heatmap():
         print(f"Error connecting to PostgreSQL: {e}")
 
 if __name__ == '__main__':
-
+    create_heatmap(1)
+    create_heatmap(2)
+    create_heatmap(3)
+    create_heatmap(4)
     collect_data_and_create_heatmap()
 
