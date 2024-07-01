@@ -3,7 +3,7 @@ import DatePicker from "react-datepicker";
 import { format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
-const SubHeading = ({ setProcesses, processes }) => {
+const SubHeadingDetail = ({ setProcesses, processes }) => {
   const [fromDateTime, setFromDateTime] = useState(new Date());
   const [toDateTime, setToDateTime] = useState(new Date());
   const [visibleCustomDate, setVisibleCustomDate] = useState(false);
@@ -219,4 +219,4 @@ const SubHeading = ({ setProcesses, processes }) => {
   );
 };
 
-export default SubHeading;
+export default SubHeadingDetail;

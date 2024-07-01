@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./components/Home";
 import Detail from "./components/Detail";
+import SessionsDetail from "./components/SessionsDetail";
 // import Home from "./Home";
 // import Detail from "./Detail";
 
@@ -11,7 +12,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/detail/:app_id" element={<Detail/>} />
+        <Route path="/detail/:app_id" element={<SessionsDetail/>} />
         <Route path="*" element={<Home />} />
       </Routes>
     </Router>
