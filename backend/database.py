@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
 import psycopg2
 from psycopg2 import sql
 from datetime import datetime, timedelta
 from flask_cors import CORS
+import os
 import eventlet
 
 # PostgreSQL connection parameters
@@ -16,6 +17,11 @@ DB_PORT = "5432"
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, async_mode='eventlet')
+
+HEATMAP_DIR = 'heatmaps'
+
+if not os.path.exists(HEATMAP_DIR):
+    os.makedirs(HEATMAP_DIR)
 
 def get_db_connection():
     conn = psycopg2.connect(
@@ -176,6 +182,38 @@ def handle_session_data(data):
         emit('session_logged', {'status': 'success'})
     except Exception as e:
         emit('session_logged', {'status': 'error', 'message': str(e)})
+
+@app.route('/heatmap/<int:app_name>', methods=['GET'])
+def get_heatmap(app_name):
+    try:
+        filename = f'heatmap_app_{app_name}.png'
+        return send_from_directory(HEATMAP_DIR, filename)
+    except FileNotFoundError:
+        return jsonify({"error": "Heatmap not found"}), 404
+
+@socketio.on('cursor_data')
+def handle_cursor_data(data):
+    try:
+        x = data['x']
+        y = data['y']
+        clicked = data['clicked']
+        app_id = data['app_id']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(""" 
+            INSERT INTO cursor_data (x, y, clicked, captured_time, app_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """,
+        (x, y, clicked, datetime.now(), app_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        emit('cursor data logged', {'status': 'success'})
+    except Exception as e:
+        emit('cursor data logged', {'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
