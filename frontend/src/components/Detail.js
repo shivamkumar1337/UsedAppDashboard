@@ -3,17 +3,18 @@ import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Detail = ({ appData }) => {
-//   const sessionData = appData.sessions.map((session) => ({
-//     start_time: new Date(session.start_time).getTime(),
-//     end_time: new Date(session.end_time).getTime(),
-//     duration: (new Date(session.end_time) - new Date(session.start_time)) / 1000, // duration in seconds
-//   }));
+
+  // Helper function to convert HH:MM:SS to seconds
+  const parseDuration = (duration) => {
+    const [hours, minutes, seconds] = duration.split(':').map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
+  };
 
   const aggregatedData = [];
   let accumulatedDuration = 0;
 
   appData.sessions.forEach((session) => {
-    accumulatedDuration += session.duration;
+    accumulatedDuration += parseDuration(session.duration);
     aggregatedData.push({
       time: format(new Date(session.end_time), 'yyyy-MM-dd HH:mm:ss'),
       total_duration: accumulatedDuration / 3600, // Convert to hours

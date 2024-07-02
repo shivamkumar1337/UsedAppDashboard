@@ -3,7 +3,7 @@ import DatePicker from "react-datepicker";
 import { format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
-const SubHeadingDetail = ({ setProcesses, processes }) => {
+const SubHeadingDetail = ({ setProcesses, app_id }) => {
   const [fromDateTime, setFromDateTime] = useState(new Date());
   const [toDateTime, setToDateTime] = useState(new Date());
   const [visibleCustomDate, setVisibleCustomDate] = useState(false);
@@ -11,6 +11,33 @@ const SubHeadingDetail = ({ setProcesses, processes }) => {
   useEffect(() => {
     fetchProcessesToday();
   }, []);
+
+  // useEffect(() => {
+  //   fetchAppData();
+  // }, [app_id]);
+
+//   const fetchAppData = async () => {
+//     try {
+//         const response = await fetch(`http://localhost:5000/sessions/${app_id}`);
+//         const data = await response.json();
+//         // console.log(data)
+//         const convertedData = data.sessions.map((item) => {
+//           return {
+//             ...item,
+//             start_time: new Date(item.start_time).toLocaleString(),
+//             end_time: new Date(item.end_time).toLocaleString(),
+//             duration: item.duration
+//           };
+//         });
+//         const finalData = {app_id:data.app_id,app_name:data.app_name,total_duration:data.total_duration,sessions:convertedData}
+//         setProcesses(finalData);
+//         // navigate(`/detail/${app_id}`);
+//         // console.log(appData)
+//         // console.log(selectedAppData)
+//       } catch (error) {
+//         console.log(error);
+//       }
+// };
 
   const handleFromDateChange = (date) => {
     setFromDateTime(date);
@@ -26,50 +53,54 @@ const SubHeadingDetail = ({ setProcesses, processes }) => {
 
   const fetchProcesses = async () => {
     try {
-      const response = await fetch("http://localhost:5000/aggregated_sessions");
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+        const response = await fetch(`http://localhost:5000/sessions/${app_id}`);
+        const data = await response.json();
+        // console.log(data)
+        const convertedData = data.sessions.map((item) => {
+          return {
+            ...item,
+            start_time: new Date(item.start_time).toLocaleString(),
+            end_time: new Date(item.end_time).toLocaleString(),
+            duration: item.duration
+          };
+        });
+        const finalData = {app_id:data.app_id,app_name:data.app_name,total_duration:data.total_duration,sessions:convertedData}
+        setProcesses(finalData);
+        // navigate(`/detail/${app_id}`);
+        // console.log(appData)
+        // console.log(selectedAppData)
+      } catch (error) {
+        console.log(error);
       }
-      const data = await response.json();
-      const convertedData = data.map((item) => ({
-        ...item,
-        first_start_time_japan: new Date(
-          item.first_start_time
-        ).toLocaleString(),
-        final_end_time_japan: new Date(item.final_end_time).toLocaleString(),
-      }));
-      setProcesses(convertedData);
-    } catch (error) {
-      console.log("Error fetching all time data:", error);
-    }
   };
 
   const fetchProcessesToday = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:5000/aggregated_sessions_today"
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
+      const response = await fetch(`http://localhost:5000/sessions_today/${app_id}`);
       const data = await response.json();
-      const convertedData = data.map((item) => ({
-        ...item,
-        first_start_time_japan: new Date(
-          item.first_start_time
-        ).toLocaleString(),
-        final_end_time_japan: new Date(item.final_end_time).toLocaleString(),
-      }));
-      setProcesses(convertedData);
+      // console.log(data)
+      const convertedData = data.sessions.map((item) => {
+        return {
+          ...item,
+          start_time: new Date(item.start_time).toLocaleString(),
+          end_time: new Date(item.end_time).toLocaleString(),
+          duration: item.duration
+        };
+      });
+      const finalData = {app_id:data.app_id,app_name:data.app_name,total_duration:data.total_duration,sessions:convertedData}
+      setProcesses(finalData);
+      // navigate(`/detail/${app_id}`);
+      // console.log(appData)
+      // console.log(selectedAppData)
     } catch (error) {
-      console.log("Error fetching today's data:", error);
+      console.log(error);
     }
   };
 
   const fetchProcessesCustom = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/aggregated_sessions_custom?start_date=${encodeURIComponent(
+        `http://localhost:5000/sessions_custom/${app_id}?start_date=${encodeURIComponent(
           fromDateTime.toISOString()
         )}&end_date=${encodeURIComponent(toDateTime.toISOString())}`
       );
@@ -77,14 +108,16 @@ const SubHeadingDetail = ({ setProcesses, processes }) => {
         throw new Error("Network response was not ok");
       }
       const data = await response.json();
-      const convertedData = data.map((item) => ({
-        ...item,
-        first_start_time_japan: new Date(
-          item.first_start_time
-        ).toLocaleString(),
-        final_end_time_japan: new Date(item.final_end_time).toLocaleString(),
-      }));
-      setProcesses(convertedData);
+      const convertedData = data.sessions.map((item) => {
+        return {
+          ...item,
+          start_time: new Date(item.start_time).toLocaleString(),
+          end_time: new Date(item.end_time).toLocaleString(),
+          duration: item.duration
+        };
+      });
+      const finalData = {app_id:data.app_id,app_name:data.app_name,total_duration:data.total_duration,sessions:convertedData}
+      setProcesses(finalData);
       setVisibleCustomDate(false);
     } catch (error) {
       console.error("Error fetching session data:", error);

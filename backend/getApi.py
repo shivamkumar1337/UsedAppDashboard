@@ -152,55 +152,6 @@ def get_aggregated_sessions_today():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/sessions/<int:app_id>', methods=['GET'])
-def get_sessions_by_app_id(app_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = """
-            SELECT
-                a.id AS app_id,
-                a.name AS app_name,
-                SUM(EXTRACT(EPOCH FROM s.duration)) AS total_duration_seconds,
-                s.start_time,
-                s.end_time
-            FROM
-                applications a
-            FULL JOIN
-                sessions s ON a.id = s.app_id
-            WHERE
-                a.id = %s
-            GROUP BY
-                a.id, a.name, s.start_time, s.end_time
-            ORDER BY
-                s.start_time;
-        """
-        cursor.execute(query, (app_id,))
-        sessions = cursor.fetchall()
-
-        # Format the response
-        session_list = []
-        total_duration_seconds = 0
-        for session in sessions:
-            if session[2] is not None:
-                total_duration_seconds = session[2]
-            session_list.append({
-                'start_time': session[3].isoformat() if session[3] else None,
-                'end_time': session[4].isoformat() if session[4] else None,
-            })
-
-        app_data = {
-            'app_id': app_id,
-            'app_name': sessions[0][1] if sessions else '',
-            'total_duration': calculate_duration(total_duration_seconds),
-            'sessions': session_list
-        }
-
-        conn.close()
-        return jsonify(app_data), 200
-    except psycopg2.Error as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/aggregated_sessions_custom', methods=['GET'])
 def get_aggregated_sessions_custom():
     try:
@@ -255,6 +206,174 @@ def get_aggregated_sessions_custom():
     except psycopg2.Error as e:
         return jsonify({"error": str(e)}), 500
 
-        
+@app.route('/sessions/<int:app_id>', methods=['GET'])
+def get_sessions_by_app_id(app_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS total_duration_seconds,
+                s.start_time,
+                s.end_time,
+                s.duration
+            FROM
+                applications a
+            FULL JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                a.id = %s
+            GROUP BY
+                a.id, a.name, s.start_time, s.end_time, s.duration
+            ORDER BY
+                s.start_time;
+        """
+        cursor.execute(query, (app_id,))
+        sessions = cursor.fetchall()
+
+        # Format the response
+        session_list = []
+        total_duration_seconds = 0
+        for session in sessions:
+            if session[2] is not None:
+                total_duration_seconds += session[2]
+            session_list.append({
+                'start_time': session[3].isoformat() if session[3] else None,
+                'end_time': session[4].isoformat() if session[4] else None,
+                'duration': calculate_duration(session[5].total_seconds()) if session[5] else None
+            })
+
+        app_data = {
+            'app_id': app_id,
+            'app_name': sessions[0][1] if sessions else '',
+            'total_duration': calculate_duration(total_duration_seconds),
+            'sessions': session_list
+        }
+
+        conn.close()
+        return jsonify(app_data), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/sessions_today/<int:app_id>', methods=['GET'])
+def get_sessions_today_by_app_id(app_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Calculate today's start and end times
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS total_duration_seconds,
+                s.start_time,
+                s.end_time,
+                s.duration
+            FROM
+                applications a
+            FULL JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                a.id = %s AND s.start_time >= %s AND s.start_time < %s
+            GROUP BY
+                a.id, a.name, s.start_time, s.end_time, s.duration
+            ORDER BY
+                s.start_time;
+        """
+        cursor.execute(query, (app_id, today_start, today_end))
+        sessions = cursor.fetchall()
+
+        # Format the response
+        session_list = []
+        total_duration_seconds = 0
+        for session in sessions:
+            if session[2] is not None:
+                total_duration_seconds += session[2]
+            session_list.append({
+                'start_time': session[3].isoformat() if session[3] else None,
+                'end_time': session[4].isoformat() if session[4] else None,
+                'duration': calculate_duration(session[5].total_seconds()) if session[5] else None
+            })
+
+        app_data = {
+            'app_id': app_id,
+            'app_name': sessions[0][1] if sessions else '',
+            'total_duration': calculate_duration(total_duration_seconds),
+            'sessions': session_list
+        }
+
+        conn.close()
+        return jsonify(app_data), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/sessions_custom/<int:app_id>', methods=['GET'])
+def get_sessions_custom_by_app_id(app_id):
+    try:
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        # Validate and parse dates
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use ISO format with milliseconds"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = """
+            SELECT
+                a.id AS app_id,
+                a.name AS app_name,
+                SUM(EXTRACT(EPOCH FROM s.duration)) AS total_duration_seconds,
+                s.start_time,
+                s.end_time,
+                s.duration
+            FROM
+                applications a
+            FULL JOIN
+                sessions s ON a.id = s.app_id
+            WHERE
+                a.id = %s AND s.start_time >= %s AND s.end_time <= %s
+            GROUP BY
+                a.id, a.name, s.start_time, s.end_time, s.duration
+            ORDER BY
+                s.start_time;
+        """
+        cursor.execute(query, (app_id, start_date, end_date))
+        sessions = cursor.fetchall()
+
+        # Format the response
+        session_list = []
+        total_duration_seconds = 0
+        for session in sessions:
+            if session[2] is not None:
+                total_duration_seconds += session[2]
+            session_list.append({
+                'start_time': session[3].isoformat() if session[3] else None,
+                'end_time': session[4].isoformat() if session[4] else None,
+                'duration': calculate_duration(session[5].total_seconds()) if session[5] else None
+            })
+
+        app_data = {
+            'app_id': app_id,
+            'app_name': sessions[0][1] if sessions else '',
+            'total_duration': calculate_duration(total_duration_seconds),
+            'sessions': session_list
+        }
+
+        conn.close()
+        return jsonify(app_data), 200
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
