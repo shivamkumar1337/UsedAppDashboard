@@ -57,11 +57,11 @@ def insert_cursor_data(conn, x, y, clicked, app_id):
 def get_current_app_id(conn):
     cursor = conn.cursor()
     query = """
-        SELECT app_id 
-        FROM sessions 
-        WHERE start_time <= NOW() 
-        AND end_time >= NOW() 
-        ORDER BY start_time 
+        SELECT app_id
+        FROM sessions
+        WHERE start_time <= NOW()
+        AND end_time >= NOW()
+        ORDER BY start_time
     """
     cursor.execute(query)
     result = cursor.fetchone()
@@ -139,21 +139,59 @@ def create_heatmap():
         for app_name in cursor_df['app_name'].unique():
             app_df = cursor_df[cursor_df['app_name'] == app_name]
 
-            plt.figure(figsize=(8, 8))
+            plt.figure(figsize=(15, 10))
             sns.set(style="whitegrid")
             plt.title(f"Cursor heatmap for App {app_name}")
 
-            sns.kdeplot(x=app_df['x'], y=app_df['y'], cmap="Reds", cbar=True, fill=True, thresh=0.1)
+            sns.kdeplot(x=app_df['x'], y=app_df['y'], cmap="Reds", cbar=True, fill=True, thresh=0.1, warn_singular=False)
             plt.xlabel('X position')
             plt.ylabel('Y position')
             plt.tight_layout()
-            plt.savefig(f'heatmap_app_{app_id}.png')
             plt.show()
             plt.close()
 
     except psycopg2.Error as e:
         print(f"Error connecting to PostgreSQL: {e}")
 
+def create_daily_heatmap():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT cd.x, cd.y, cd.app_id, a.name as app_name, DATE(cd.capture_time) AS capture_date
+            FROM cursor_data cd
+            JOIN applications a ON a.id = cd.app_id
+        """
+        cursor.execute(query)
+        cursor_data = cursor.fetchall()
+        conn.close()
+
+        if not cursor_data:
+            print("No data returned from query")
+            return
+
+        cursor_df = pd.DataFrame(cursor_data, columns=['x', 'y', 'app_id', 'app_name', 'capture_date'])
+
+        for (capture_date, app_id) in cursor_df.groupby(['capture_date', 'app_id']).groups.keys():
+            daily_df = cursor_df[(cursor_df['capture_date'] == capture_date) & (cursor_df['app_id'] == app_id)]
+            app_name = daily_df['app_name'].iloc[0]
+
+            plt.figure(figsize=(8, 8))
+            sns.set(style="whitegrid")
+            plt.title(f"Cursor heatmap for App {app_name} on date {capture_date}")
+
+            sns.kdeplot(x=daily_df['x'], y=daily_df['y'], cmap="Reds", cbar=True, fill=True, thresh=0.1, warn_singular=False)
+            plt.xlabel('X position')
+            plt.ylabel('Y position')
+            plt.tight_layout()
+            plt.show()
+            plt.close()
+
+    except psycopg2.Error as e:
+        print(f"Error connecting to PostgreSQL: {e}")
+
+
 if __name__ == '__main__':
     # create_heatmap()
+    # create_daily_heatmap()
     collect_data_and_create_heatmap()
